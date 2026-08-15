@@ -41,6 +41,7 @@ from ..speculative.utils import (
     run_speculative_server_rounds,
     speculative_hidden_state,
     speculative_prefill_kwargs,
+    speculative_prefill_step_size,
     speculative_stats_since,
     speculative_stats_snapshot,
 )
@@ -2012,7 +2013,7 @@ class ResponseGenerator:
             results.close()
 
     def _run_speculative(self):
-        """GPU thread loop with DFlash, EAGLE-3, or MTP speculative decoding.
+        """GPU thread loop with DFlash, DSpark, EAGLE-3, or MTP decoding.
 
         Collects incoming requests, prefills them as a batch with the
         per-family hooks, then runs the matching round-loop for decode.
@@ -2112,7 +2113,9 @@ class ResponseGenerator:
                     make_cache=_make_cache,
                 )
 
-                prefill_step_size = get_prefill_step_size()
+                prefill_step_size = speculative_prefill_step_size(
+                    get_prefill_step_size(), drafter
+                )
                 policy_kwargs = {**prompt_kwargs, **prefill_kwargs}
                 if not _chunked_prefill_enabled(
                     self.model,
